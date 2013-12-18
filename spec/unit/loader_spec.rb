@@ -69,13 +69,15 @@ EOF
   end
 
   when_plugins_directory "contains invalid plugins" do
-    with_plugin("no_method.rb", <<EOF)
-Ohai.plugin(:Zoo) do
-  provides 'seals'
+    with_plugin("extra_s.rb", <<EOF)
+Ohai.plugins(:ExtraS) do
+  provides "the_letter_s"
 end
+EOF
 
-Ohai.blah(:Nasty) do
-  provides 'seals'
+    with_plugin("no_method.rb", <<EOF)
+Ohai.plugin(:NoMethod) do
+  really_wants "this_attribute"
 end
 EOF
 
@@ -94,6 +96,88 @@ Ohai.plugin(:Zoo) do
 end
 EOF
 
+    with_plugin("bad_symbol.rb", <<EOF)
+Ohai.plugin(:1nval!d) do
+  provides "not_a_symbol"
+end
+EOF
+
+    describe "load_plugin() method" do
+      describe "when the plugin uses Ohai.plugin instead of Ohai.plugins" do
+        it "should log an unsupported operation warning" do
+          Ohai::Log.should_receive(:warn).with(/used unsupported operation/)
+          @loader.load_plugin(path_to("extra_s.rb"))
+        end
+
+        it "should not raise an error" do
+          expect{ @loader.load_plugin(path_to("extra_s.rb")) }.not_to raise_error
+        end
+      end
+
+      describe "when the plugin tries to call an unexisting method" do
+        it "shoud log an unsupported operation warning" do
+          Ohai::Log.should_receive(:warn).with(/used unsupported operation/)
+          @loader.load_plugin(path_to("no_method.rb"))
+        end
+
+        it "should not raise an error" do
+          expect{ @loader.load_plugin(path_to("no_method.rb")) }.not_to raise_error
+        end
+      end
+
+      describe "when the plugin defines collect_data on the same platform more than once" do
+        it "shoud log an illegal plugin definition warning" do
+          Ohai::Log.should_receive(:warn).with(/not properly defined/)
+          @loader.load_plugin(path_to("illegal_def.rb"))
+        end
+
+        it "should not raise an error" do
+          expect{ @loader.load_plugin(path_to("illegal_def.rb")) }.not_to raise_error
+        end
+      end
+
+      describe "when an unexpected error is encountered" do
+        it "should log a warning" do
+          Ohai::Log.should_receive(:warn).with(/threw exception/)
+          @loader.load_plugin(path_to("unexpected_error.rb"))
+        end
+
+        it "should not raise an error" do
+          expect{ @loader.load_plugin(path_to("unexpected_error.rb")) }.not_to raise_error
+        end
+      end
+
+      describe "when the plugin name symbol has bad syntax" do
+        it "should log a syntax error warning" do
+          Ohai::Log.should_receive(:warn).with(/threw syntax error/)
+          @loader.load_plugin(path_to("bad_symbol.rb"))
+        end
+
+        it "should not raise an error" do
+          expect{ @loader.load_plugin(path_to("bad_symbol.rb")) }.not_to raise_error
+        end
+      end
+    end
+  end
+
+=begin
+  when_plugins_directory "contains invalid plugins" do
+    with_plugin("no_method.rb", <<EOF)
+Ohai.plugin(:Zoo) do
+  provides 'seals'
+end
+
+Ohai.blah(:Nasty) do
+  provides 'seals'
+end
+EOF
+
+    with_plugin("plugins.rb", <<EOF)
+Ohai.plugins(:ExtraS) do
+  provides "the_letter_s"
+end
+EOF
+
     describe "load_plugin() method" do
       it "should log a warning when plugin tries to call an unexisting method" do
         Ohai::Log.should_receive(:warn).with(/used unsupported operation/)
@@ -109,7 +193,11 @@ EOF
         Ohai::Log.should_receive(:warn).with(/threw exception/)
         lambda { @loader.load_plugin(path_to("unexpected_error.rb")) }.should_not raise_error
       end
+
+      it "is going to do something, let's find out" do
+        @loader.load_plugin(path_to("plugins.rb"))
+      end
     end
   end
-
+=end
 end
