@@ -82,7 +82,7 @@ For more information visit here: docs.opscode.com/ohai_custom.html")
         Ohai::Log.warn("[UNSUPPORTED OPERATION] Plugin at #{plugin_path} used unsupported operation \'#{e.name.to_s}\'")
       rescue SyntaxError => e
         # grab the part of the error message that follows "<main>:line#: syntax error, "
-        message = e.message[/(\<.*\>:([0-9]+:)? syntax error, )(?<match>.*)/m, "match"]
+        message = e.message[/(^[^,]+, )(?<match>.*)/m, "match"]
         Ohai::Log.warn("Plugin at #{plugin_path} threw syntax error: #{message}")
       rescue Exception, Errno::ENOENT => e
         Ohai::Log.warn("Plugin at #{plugin_path} threw exception #{e.inspect} #{e.backtrace.join("\n")}")
